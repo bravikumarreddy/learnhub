@@ -11,7 +11,7 @@
   var el = function (id) { return document.getElementById(id); };
 
   // Subject hub links (extend when you add subjects)
-  var hubLinks = { cpp: "subject-cpp.html" };
+  var hubLinks = { cpp: "subject-cpp.html", "cpp-senior": "subject-cpp.html" };
   var hub = hubLinks[subject] || "index.html";
   el("back-link").href = hub;
   el("result-back").href = hub;
@@ -25,7 +25,7 @@
   }
 
   // Crumb + intro
-  var subLabel = subject.toUpperCase();
+  var subLabel = quiz.crumb || subject.toUpperCase();
   el("crumb-sub").innerHTML = '<a href="' + hub + '">' + subLabel + "</a>";
   el("quiz-title").textContent = quiz.title;
   el("quiz-subtitle").textContent = quiz.subtitle || "";
