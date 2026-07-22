@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Claude Console — LearnHub</title>
+  <link rel="stylesheet" href="styles.css" />
+  <script src="auth.js"></script>
+  <script>LH_AUTH.guard();</script>
+  <style>
+    .console-wrap { max-width: 900px; margin: 0 auto; }
+    .conn-bar {
+      display: grid; grid-template-columns: 1fr 1fr auto; gap: 10px;
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: 14px; padding: 14px; margin-bottom: 8px;
+    }
+    .conn-bar input {
+      padding: 11px 13px; font-size: 14px; background: var(--bg-2);
+      border: 1.5px solid var(--border); border-radius: 10px; color: var(--text); outline: none;
+    }
+    .conn-bar input:focus { border-color: var(--accent); }
+    .status { font-size: 13px; color: var(--muted); margin: 0 0 18px; display: flex; align-items: center; gap: 8px; }
+    .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--muted); flex: none; }
+    .dot.on { background: var(--accent-2); box-shadow: 0 0 8px var(--accent-2); }
+    .dot.off { background: var(--danger); }
+
+    .transcript {
+      background: var(--card); border: 1px solid var(--border); border-radius: var(--radius);
+      padding: 18px; min-height: 320px; max-height: 56vh; overflow-y: auto;
+      display: flex; flex-direction: column; gap: 12px;
+    }
+    .bubble { padding: 12px 15px; border-radius: 12px; font-size: 14.5px; line-height: 1.55; white-space: pre-wrap; word-break: break-word; }
+    .bubble.me { background: rgba(108,140,255,0.16); border: 1px solid var(--border); align-self: flex-end; max-width: 80%; }
+    .bubble.claude { background: var(--bg-2); border: 1px solid var(--border); align-self: flex-start; max-width: 92%; }
+    .bubble.tool {
+      align-self: flex-start; max-width: 92%; font-family: "JetBrains Mono", ui-monospace, Menlo, monospace;
+      font-size: 13px; background: #0a1230; border: 1px solid var(--border); color: #9fe7c8;
+    }
+    .bubble.sys { align-self: center; color: var(--muted); font-size: 12.5px; background: transparent; border: none; padding: 2px; }
+    .bubble.err { align-self: flex-start; max-width: 92%; background: rgba(255,107,129,0.12); border: 1px solid var(--danger); color: #ffd0d8; }
+
+    .composer { display: flex; gap: 10px; margin-top: 14px; }
+    .composer textarea {
+      flex: 1; resize: none; min-height: 52px; max-height: 160px; padding: 14px;
+      font-size: 15px; background: var(--bg-2); border: 1.5px solid var(--border);
+      border-radius: 12px; color: var(--text); outline: none; font-family: inherit;
+    }
+    .composer textarea:focus { border-color: var(--accent); }
+    .warn {
+      background: rgba(255,204,102,0.10); border: 1px solid var(--border);
+      border-radius: 12px; padding: 12px 15px; color: var(--warn); font-size: 13px; margin-bottom: 16px;
+    }
+  </style>
+</head>
+<body>
+  <header class="site-header">
+    <a class="brand" href="index.html"><span class="logo">L</span> LearnHub</a>
+    <nav class="crumbs"><a href="index.html">Home</a><span>/</span>Claude Console<span>·</span><a href="#" onclick="LH_AUTH.logout();return false;">Log out</a></nav>
+  </header>
+
+  <main class="container">
+    <div class="console-wrap">
+      <div class="hero" style="padding:8px 0 14px;">
+        <h1>🤖 <span class="grad">Claude Console</span></h1>
+        <p>Send instructions to the Claude Code CLI running on your laptop. It works directly in this repo.</p>
+      </div>
+
+      <div class="warn">⚠️ This runs Claude with permissions bypassed — it can edit files and run commands on your laptop without asking. Only connect to your own bridge, and keep the token secret.</div>
+
+      <div class="conn-bar">
+        <input id="url" type="text" placeholder="Bridge URL (e.g. wss://xxx.trycloudflare.com or ws://localhost:8787)" />
+        <input id="token" type="password" placeholder="Connection token (from the server console)" />
+        <button class="btn primary" id="connect-btn">Connect</button>
+      </div>
+      <p class="status"><span class="dot off" id="dot"></span><span id="status-text">Not connected</span></p>
+
+      <div class="transcript" id="transcript">
+        <div class="bubble sys">Enter your bridge URL and token above, then Connect. Start the server on your laptop first (see bridge/README.md).</div>
+      </div>
+
+      <div class="composer">
+        <textarea id="input" placeholder="Tell Claude what to do in this repo… (Enter to send, Shift+Enter for newline)" disabled></textarea>
+        <button class="btn primary" id="send-btn" disabled>Send</button>
+      </div>
+      <div class="actions" style="margin-top:10px;">
+        <button class="btn ghost" id="reset-btn" disabled>New conversation</button>
+        <a class="btn ghost" href="index.html">← Back</a>
+      </div>
+    </div>
+  </main>
+
+  <script>
+  (function () {
+    var ws = null, connected = false, authed = false, streaming = null;
+    var $ = function (id) { return document.getElementById(id); };
+    var t = $("transcript");
+
+    // restore saved settings
+    try {
+      $("url").value = localStorage.getItem("lh_bridge_url") || "";
+      $("token").value = localStorage.getItem("lh_bridge_token") || "";
+    } catch (e) {}
+
+    function bubble(cls, text) {
+      var d = document.createElement("div");
+      d.className = "bubble " + cls;
+      d.textContent = text;
+      t.appendChild(d);
+      t.scrollTop = t.scrollHeight;
+      return d;
+    }
+
+    function setStatus(state, text) {
+      $("dot").className = "dot " + state;
+      $("status-text").textContent = text;
+      var on = state === "on";
+      $("input").disabled = !on;
+      $("send-btn").disabled = !on;
+      $("reset-btn").disabled = !on;
+    }
+
+    function connect() {
+      var url = $("url").value.trim();
+      var token = $("token").value;
+      if (!url) { bubble("err", "Please enter the bridge URL."); return; }
+      try {
+        localStorage.setItem("lh_bridge_url", url);
+        localStorage.setItem("lh_bridge_token", token);
+      } catch (e) {}
+
+      if (ws) { try { ws.close(); } catch (e) {} }
+      setStatus("off", "Connecting…");
+      try { ws = new WebSocket(url); }
+      catch (e) { bubble("err", "Bad URL: " + e.message); setStatus("off", "Not connected"); return; }
+
+      ws.onopen = function () {
+        connected = true;
+        ws.send(JSON.stringify({ type: "auth", token: token }));
+      };
+      ws.onmessage = function (e) {
+        var m; try { m = JSON.parse(e.data); } catch (err) { return; }
+        handle(m);
+      };
+      ws.onclose = function (e) {
+        connected = false; authed = false; streaming = null;
+        setStatus("off", "Disconnected" + (e.reason ? " (" + e.reason + ")" : ""));
+      };
+      ws.onerror = function () {
+        bubble("err", "Connection error. Is the server running and the URL/tunnel correct?");
+      };
+    }
+
+    function handle(m) {
+      switch (m.type) {
+        case "hello": break;
+        case "ready":
+          authed = true;
+          setStatus("on", "Connected · repo: " + (m.repo || "?"));
+          bubble("sys", "✔ Authenticated. Ready for instructions.");
+          break;
+        case "start":
+          streaming = null;
+          break;
+        case "notice":
+          bubble("sys", m.message); break;
+        case "tool":
+          bubble("tool", (m.summary || m.name)); break;
+        case "text":
+          if (!streaming) streaming = bubble("claude", "");
+          streaming.textContent += m.data;
+          t.scrollTop = t.scrollHeight;
+          break;
+        case "stderr":
+          bubble("sys", m.data.trim()); break;
+        case "result":
+          break;
+        case "done":
+          streaming = null;
+          if (m.ok === false) bubble("err", "Claude exited with an error (code " + m.code + ").");
+          break;
+        case "error":
+          bubble("err", m.message);
+          if (!authed) setStatus("off", "Auth failed");
+          break;
+      }
+    }
+
+    function sendPrompt() {
+      var v = $("input").value.trim();
+      if (!v || !authed) return;
+      bubble("me", v);
+      ws.send(JSON.stringify({ type: "prompt", text: v }));
+      $("input").value = "";
+    }
+
+    $("connect-btn").addEventListener("click", connect);
+    $("send-btn").addEventListener("click", sendPrompt);
+    $("reset-btn").addEventListener("click", function () {
+      if (authed) { ws.send(JSON.stringify({ type: "reset" })); }
+    });
+    $("input").addEventListener("keydown", function (e) {
+      if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendPrompt(); }
+    });
+  })();
+  </script>
+</body>
+</html>
