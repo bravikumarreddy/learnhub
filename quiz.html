@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Quiz — LearnHub</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header class="site-header">
+    <a class="brand" href="index.html">
+      <span class="logo">L</span> LearnHub
+    </a>
+    <nav class="crumbs" id="crumbs"><a href="index.html">Home</a><span>/</span><span id="crumb-sub">Quiz</span></nav>
+  </header>
+
+  <main class="container">
+    <div class="quiz-wrap">
+      <!-- Intro -->
+      <section id="intro">
+        <div class="hero" style="padding-top:8px;">
+          <h1 id="quiz-title">Quiz</h1>
+          <p id="quiz-subtitle"></p>
+        </div>
+        <div class="actions">
+          <button class="btn primary" id="start-btn">Start quiz →</button>
+          <a class="btn ghost" id="back-link" href="index.html">← Back</a>
+        </div>
+      </section>
+
+      <!-- Question view -->
+      <section id="quiz" class="hidden">
+        <div class="progress">
+          <span id="q-count">Question 1 of 10</span>
+          <span id="q-score">Score: 0</span>
+        </div>
+        <div class="bar"><span id="bar-fill"></span></div>
+
+        <div class="q-card">
+          <span class="q-tag" id="q-tag">Basics</span>
+          <p class="q-text" id="q-text"></p>
+          <pre class="code hidden" id="q-code"></pre>
+
+          <div class="options" id="options"></div>
+
+          <div class="explain" id="explain">
+            <div class="lbl" id="explain-lbl">Explanation</div>
+            <p id="explain-text"></p>
+          </div>
+
+          <div class="q-footer">
+            <span id="feedback" style="color:var(--muted);font-size:14px;"></span>
+            <button class="btn primary hidden" id="next-btn">Next →</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- Result view -->
+      <section id="result" class="hidden">
+        <div class="q-card result">
+          <div class="score-ring" id="ring"><span class="num" id="ring-num">0%</span></div>
+          <h2 id="result-title">Nice work!</h2>
+          <p id="result-msg"></p>
+          <div class="actions" style="justify-content:center;">
+            <button class="btn primary" id="retry-btn">Try again ↻</button>
+            <a class="btn ghost" id="result-back" href="index.html">Back to subject</a>
+          </div>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <footer class="footer">Built for Ravi • LearnHub</footer>
+
+  <!-- Load question banks. Add more <script> lines here for new subjects. -->
+  <script src="data/cpp.js"></script>
+  <script src="quiz.js"></script>
+</body>
+</html>

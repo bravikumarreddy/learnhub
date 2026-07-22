@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>LearnHub — Learn the way you like</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header class="site-header">
+    <a class="brand" href="index.html">
+      <span class="logo">L</span> LearnHub
+    </a>
+    <nav class="crumbs">Pick a subject to begin</nav>
+  </header>
+
+  <main class="container">
+    <section class="hero">
+      <h1>Learn what you love, <span class="grad">the way you like.</span></h1>
+      <p>Choose a subject below. Each one opens into quizzes, news, and the latest updates — so you can learn, test yourself, and stay current all in one place.</p>
+    </section>
+
+    <h2 class="section-title">Subjects</h2>
+    <div class="grid" id="subject-grid">
+      <a class="card" href="subject-cpp.html">
+        <span class="badge ready">Ready</span>
+        <div class="icon">💻</div>
+        <h3>C++</h3>
+        <p>Core language, memory, STL, and tricky code-output questions.</p>
+      </a>
+
+      <div class="card locked">
+        <span class="badge soon">Soon</span>
+        <div class="icon">🐍</div>
+        <h3>Python</h3>
+        <p>Coming next — quizzes on syntax, data, and common gotchas.</p>
+      </div>
+
+      <div class="card locked">
+        <span class="badge soon">Soon</span>
+        <div class="icon">🟨</div>
+        <h3>JavaScript</h3>
+        <p>Coming next — closures, async, the DOM, and more.</p>
+      </div>
+
+      <div class="card locked">
+        <span class="badge soon">Soon</span>
+        <div class="icon">🧠</div>
+        <h3>Add your own</h3>
+        <p>New subjects drop in easily — just add a question file.</p>
+      </div>
+    </div>
+  </main>
+
+  <footer class="footer">Built for Ravi • LearnHub</footer>
+</body>
+</html>
