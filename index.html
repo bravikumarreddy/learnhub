@@ -6,15 +6,13 @@
   <title>LearnHub — Learn the way you like</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="stylesheet" href="styles.css" />
-  <script src="auth.js"></script>
-  <script>LH_AUTH.guard();</script>
 </head>
 <body>
   <header class="site-header">
     <a class="brand" href="index.html">
       <span class="logo">L</span> LearnHub
     </a>
-    <nav class="crumbs">Pick a subject to begin<span>·</span><a href="#" onclick="LH_AUTH.logout();return false;">Log out</a></nav>
+    <nav class="crumbs">Pick a subject to begin</nav>
   </header>
 
   <main class="container">
@@ -52,16 +50,6 @@
         <h3>Add your own</h3>
         <p>New subjects drop in easily — just add a question file.</p>
       </div>
-    </div>
-
-    <h2 class="section-title">Tools</h2>
-    <div class="grid">
-      <a class="card" href="console.html">
-        <span class="badge ready">Live</span>
-        <div class="icon">🤖</div>
-        <h3>Claude Console</h3>
-        <p>Send instructions to the Claude Code CLI running on your laptop — it works directly in this repo.</p>
-      </a>
     </div>
   </main>
 
