@@ -11,6 +11,12 @@
       color: var(--accent-2); display: flex; gap: 14px; flex-wrap: wrap;
     }
     .card-stat .resume { color: var(--warn); }
+    .book-head { display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap; }
+    .book-head .book-progress {
+      font-size: 13.5px; font-weight: 700; color: var(--accent-2);
+    }
+    .book-desc { color: var(--muted); margin: -4px 0 16px; font-size: 15px; max-width: 640px; }
+    .card.random .icon { filter: none; }
   </style>
 </head>
 <body>
@@ -24,10 +30,13 @@
   <main class="container">
     <section class="hero">
       <h1>💻 <span class="grad">C++</span></h1>
-      <p>Pick how you want to learn C++ today. More modes are on the way — quizzes are ready right now.</p>
+      <p>Quizzes are organized by book — pick a category, or hit Random to draw from the whole book. More books are on the way.</p>
     </section>
 
-    <h2 class="section-title">Learning modes</h2>
+    <!-- Book sections are rendered here from data/books.js -->
+    <div id="book-sections"></div>
+
+    <h2 class="section-title">Practice quizzes</h2>
     <div class="grid">
       <a class="card" href="quiz.html?subject=cpp">
         <span class="badge ready">Ready</span>
@@ -52,80 +61,10 @@
 
       <div class="card locked">
         <span class="badge soon">Soon</span>
-        <div class="icon">⚡</div>
-        <h3>Latest News</h3>
-        <p>The newest updates from the C++ world, refreshed regularly.</p>
-      </div>
-
-      <div class="card locked">
-        <span class="badge soon">Soon</span>
         <div class="icon">🎥</div>
         <h3>Video lessons</h3>
         <p>Short walkthroughs of key topics — planned for a future update.</p>
       </div>
-    </div>
-
-    <h2 class="section-title">Fundamentals course — 603 questions</h2>
-    <p style="color:var(--muted);margin:-4px 0 16px;font-size:15px;max-width:640px;">
-      A gotcha-focused walkthrough of the whole language, split into eight quizzes.
-      Every question is verified, non-trivial, and shown in random order. Work through all eight to cover the fundamentals end to end.
-    </p>
-    <div class="grid">
-      <a class="card" href="quiz.html?subject=cpp-types">
-        <span class="badge ready">Ready</span>
-        <div class="icon">🔤</div>
-        <h3>Types, Expressions &amp; Statements</h3>
-        <p>Initialization, const &amp; references, conversions, precedence, order-of-evaluation and control-flow traps.</p>
-      </a>
-
-      <a class="card" href="quiz.html?subject=cpp-containers">
-        <span class="badge ready">Ready</span>
-        <div class="icon">📦</div>
-        <h3>Strings, Containers &amp; Iterators</h3>
-        <p>std::string, vector &amp; capacity, iterator invalidation, and raw arrays / pointer arithmetic.</p>
-      </a>
-
-      <a class="card" href="quiz.html?subject=cpp-functions">
-        <span class="badge ready">Ready</span>
-        <div class="icon">🧩</div>
-        <h3>Functions &amp; Lambdas</h3>
-        <p>Parameter passing, overload resolution, default args, and lambda captures / dangling closures.</p>
-      </a>
-
-      <a class="card" href="quiz.html?subject=cpp-classes">
-        <span class="badge ready">Ready</span>
-        <div class="icon">🏛️</div>
-        <h3>Classes &amp; Operators</h3>
-        <p>const members, init order, delegating constructors, explicit, and operator overloading.</p>
-      </a>
-
-      <a class="card" href="quiz.html?subject=cpp-memory">
-        <span class="badge ready">Ready</span>
-        <div class="icon">♻️</div>
-        <h3>Copy, Move &amp; Memory</h3>
-        <p>Rule of three/five, move semantics, RVO, and unique_ptr / shared_ptr ownership.</p>
-      </a>
-
-      <a class="card" href="quiz.html?subject=cpp-oop">
-        <span class="badge ready">Ready</span>
-        <div class="icon">🧬</div>
-        <h3>Inheritance &amp; Polymorphism</h3>
-        <p>Virtual dispatch, object slicing, virtual destructors, name hiding and abstract classes.</p>
-      </a>
-
-      <a class="card" href="quiz.html?subject=cpp-templates">
-        <span class="badge ready">Ready</span>
-        <div class="icon">⚙️</div>
-        <h3>Templates &amp; the STL</h3>
-        <p>Function/class templates, specialization, dependent names, and generic algorithms.</p>
-      </a>
-
-      <a class="card" href="quiz.html?subject=cpp-advanced">
-        <span class="badge ready">Ready</span>
-        <div class="icon">🛡️</div>
-        <h3>Exceptions, Scope &amp; I/O</h3>
-        <p>Exception safety &amp; RAII, noexcept, namespaces / ADL, and iostream formatting pitfalls.</p>
-      </a>
     </div>
 
     <div class="actions" style="margin-top:28px;">
@@ -136,21 +75,92 @@
 
   <footer class="footer">Built for Ravi • LearnHub</footer>
 
+  <!-- Question banks (needed for counts/progress) + the book registry -->
+  <script src="data/cpp.js"></script>
+  <script src="data/cpp-senior.js"></script>
+  <script src="data/cpp-types.js"></script>
+  <script src="data/cpp-containers.js"></script>
+  <script src="data/cpp-functions.js"></script>
+  <script src="data/cpp-classes.js"></script>
+  <script src="data/cpp-memory.js"></script>
+  <script src="data/cpp-oop.js"></script>
+  <script src="data/cpp-templates.js"></script>
+  <script src="data/cpp-advanced.js"></script>
+  <script src="data/books.js"></script>
+
   <script>
-    // Annotate each quiz card with saved best score / resume state from localStorage.
     (function () {
       var store = {};
       try { store = JSON.parse(localStorage.getItem("lh_progress_v1")) || {}; } catch (e) {}
-      var cards = document.querySelectorAll('a.card[href*="quiz.html?subject="]');
+
+      function bankSize(id) {
+        var b = (window.QUIZZES || {})[id];
+        return b ? b.questions.length : 0;
+      }
+      function masteredCount(id) {
+        var st = store[id];
+        return st && st.mastered ? st.mastered.length : 0;
+      }
+      function esc(s) {
+        return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+      }
+
+      // ---- render one section per book --------------------------------------
+      var host = document.getElementById("book-sections");
+      (window.BOOKS || []).forEach(function (book) {
+        var totalQ = 0, totalM = 0;
+        book.categories.forEach(function (c) {
+          totalQ += bankSize(c.id);
+          totalM += masteredCount(c.id);
+        });
+
+        var section = document.createElement("div");
+        var cards = "";
+
+        // Random card — the whole book, shuffled.
+        cards +=
+          '<a class="card random" href="quiz.html?book=' + book.id + '">' +
+          '<span class="badge ready">All chapters</span>' +
+          '<div class="icon">🎲</div>' +
+          "<h3>Random — whole book</h3>" +
+          "<p>All " + totalQ + " questions from every category in one shuffled run. " +
+          "Correct answers count toward each category’s progress.</p></a>";
+
+        book.categories.forEach(function (c) {
+          cards +=
+            '<a class="card" href="quiz.html?subject=' + c.id + '">' +
+            '<span class="badge ready">Ready</span>' +
+            '<div class="icon">' + c.icon + "</div>" +
+            "<h3>" + esc(c.title) + "</h3>" +
+            "<p>" + esc(c.blurb) + "</p></a>";
+        });
+
+        section.innerHTML =
+          '<div class="book-head"><h2 class="section-title">' + book.icon + " " +
+          esc(book.title) + " — " + totalQ + " questions</h2>" +
+          '<span class="book-progress">✓ ' + totalM + " / " + totalQ + " mastered</span></div>" +
+          '<p class="book-desc">' + esc(book.description) + "</p>" +
+          '<div class="grid">' + cards + "</div>";
+        host.appendChild(section);
+      });
+
+      // ---- annotate every quiz card with saved progress ---------------------
+      var cards = document.querySelectorAll('a.card[href^="quiz.html?"]');
       cards.forEach(function (card) {
-        var m = card.getAttribute("href").match(/subject=([^&]+)/);
-        if (!m) return;
-        var st = store[decodeURIComponent(m[1])];
-        if (!st) return;
+        var href = card.getAttribute("href");
+        var m = href.match(/subject=([^&]+)/);
+        var bm = href.match(/book=([^&]+)/);
+        var key = m ? decodeURIComponent(m[1]) : bm ? "book:" + decodeURIComponent(bm[1]) : null;
+        if (!key) return;
+        var st = store[key];
         var parts = [];
-        if (typeof st.best === "number") parts.push('<span>★ Best ' + st.best + '%</span>');
-        if (st.inProgress && st.inProgress.order) {
-          parts.push('<span class="resume">▸ Resume Q' + (st.inProgress.idx + 1) + '</span>');
+        if (m) {
+          var size = bankSize(key), done = masteredCount(key);
+          if (size && done) parts.push("<span>✓ " + done + "/" + size + " mastered</span>");
+        }
+        if (st && typeof st.best === "number") parts.push("<span>★ Best " + st.best + "%</span>");
+        if (st && st.inProgress && st.inProgress.order) {
+          parts.push('<span class="resume">▸ Resume Q' + (st.inProgress.idx + 1) + "</span>");
         }
         if (!parts.length) return;
         var div = document.createElement("div");

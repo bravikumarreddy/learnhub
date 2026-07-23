@@ -1,16 +1,23 @@
 /* ===== LearnHub quiz engine =====
-   Reads ?subject=xxx from the URL and loads window.QUIZZES[xxx].
+   Modes:
+     quiz.html?subject=xxx  — one question bank (window.QUIZZES[xxx])
+     quiz.html?book=yyy     — ALL questions of window.BOOKS entry yyy, merged
+                              and shuffled. Each answer updates the mastered
+                              list of the question's home category, so a book
+                              run contributes to every category's progress.
 
-   Progress is persisted per-subject in localStorage under "lh_progress_v1":
+   Progress is persisted in localStorage under "lh_progress_v1":
      {
-       "<subject>": {
+       "<key>": {
          best: <highest percent ever>,
          mastered: [<original question indices answered correctly>],
          inProgress: { order: [indices], idx, score } | null
        }
      }
-   - Resume: an interrupted run is restored from inProgress.
-   - Best score: shown on the intro + subject cards.
+   <key> is the subject id, or "book:<bookId>" for book runs. Book runs keep
+   their own best/resume, but "mastered" lives only on the category keys.
+   - Resume: an interrupted run is restored from inProgress (dropped if the
+     question count has changed since it was saved).
    - Mastered: correctly-answered questions sort to the back of a fresh run
      (and drop out of "mastered" again if you later miss them), so repeats
      focus on the ones you still get wrong.
@@ -19,8 +26,8 @@
   "use strict";
 
   var params = new URLSearchParams(window.location.search);
-  var subject = params.get("subject") || "cpp";
-  var quiz = (window.QUIZZES || {})[subject];
+  var bookId = params.get("book");
+  var subject = params.get("subject");
 
   var el = function (id) { return document.getElementById(id); };
 
@@ -37,14 +44,50 @@
     "cpp-templates": "subject-cpp.html",
     "cpp-advanced": "subject-cpp.html"
   };
-  var hub = hubLinks[subject] || "index.html";
+
+  var quiz = null;      // { title, subtitle, crumb, questions }
+  var refs = null;      // book mode: refs[i] = { cat, idx } — source of question i
+  var storeKey = null;  // where best / inProgress live
+  var hub = "index.html";
+
+  if (bookId) {
+    var book = (window.BOOKS || []).filter(function (b) { return b.id === bookId; })[0];
+    if (book) {
+      var qs = [];
+      refs = [];
+      book.categories.forEach(function (c) {
+        var bank = (window.QUIZZES || {})[c.id];
+        if (!bank) return;
+        bank.questions.forEach(function (q, i) {
+          qs.push(q);
+          refs.push({ cat: c.id, idx: i });
+        });
+      });
+      quiz = {
+        title: book.icon + " " + book.title + " — Random mix",
+        subtitle: "All " + qs.length + " questions from the whole book, shuffled. " +
+                  "Every correct answer counts toward that category's progress.",
+        crumb: book.title,
+        questions: qs
+      };
+      storeKey = "book:" + book.id;
+      hub = book.hub || "index.html";
+    }
+  } else {
+    subject = subject || "cpp";
+    quiz = (window.QUIZZES || {})[subject];
+    storeKey = subject;
+    hub = hubLinks[subject] || "index.html";
+  }
+
   el("back-link").href = hub;
   el("result-back").href = hub;
 
-  if (!quiz) {
+  if (!quiz || !quiz.questions.length) {
     el("quiz-title").textContent = "Quiz not found";
-    el("quiz-subtitle").textContent =
-      'No questions are loaded for "' + subject + '". Add a data file and include it in quiz.html.';
+    el("quiz-subtitle").textContent = bookId
+      ? 'No book "' + bookId + '" is registered. Add it to data/books.js.'
+      : 'No questions are loaded for "' + subject + '". Add a data file and include it in quiz.html.';
     el("start-btn").classList.add("hidden");
     return;
   }
@@ -59,23 +102,24 @@
   function saveStore(s) {
     try { localStorage.setItem(STORE_KEY, JSON.stringify(s)); } catch (e) {}
   }
-  function subjState() { return loadStore()[subject] || {}; }
-  function updateSubj(mut) {
+  function keyState(key) { return loadStore()[key] || {}; }
+  function updateKey(key, mut) {
     var s = loadStore();
-    var cur = s[subject] || {};
+    var cur = s[key] || {};
     mut(cur);
-    s[subject] = cur;
+    s[key] = cur;
     saveStore(s);
   }
+  function ownState() { return keyState(storeKey); }
 
   // ---- intro / crumb --------------------------------------------------------
-  var subLabel = quiz.crumb || subject.toUpperCase();
+  var subLabel = quiz.crumb || (subject || "quiz").toUpperCase();
   el("crumb-sub").innerHTML = '<a href="' + hub + '">' + subLabel + "</a>";
   el("quiz-title").textContent = quiz.title;
 
   function introSubtitle() {
     var base = quiz.subtitle || "";
-    var best = subjState().best;
+    var best = ownState().best;
     if (typeof best === "number") {
       base += (base ? "  •  " : "") + "Best score: " + best + "%";
     }
@@ -99,11 +143,30 @@
     return a;
   }
 
+  // Which composite/original indices are currently mastered?
+  // Book mode reads each source category's mastered list; subject mode its own.
+  function masteredMap() {
+    var m = {};
+    if (refs) {
+      var store = loadStore();
+      var byCat = {};
+      refs.forEach(function (r, i) {
+        if (!byCat[r.cat]) {
+          var set = {};
+          ((store[r.cat] || {}).mastered || []).forEach(function (k) { set[k] = true; });
+          byCat[r.cat] = set;
+        }
+        if (byCat[r.cat][r.idx]) m[i] = true;
+      });
+    } else {
+      (ownState().mastered || []).forEach(function (i) { m[i] = true; });
+    }
+    return m;
+  }
+
   // Unmastered questions first (shuffled), mastered ones after (shuffled).
   function buildOrder() {
-    var st = subjState();
-    var mastered = {};
-    (st.mastered || []).forEach(function (i) { mastered[i] = true; });
+    var mastered = masteredMap();
     var fresh = [], done = [];
     for (var i = 0; i < total; i++) { (mastered[i] ? done : fresh).push(i); }
     return shuffleInts(fresh).concat(shuffleInts(done));
@@ -116,9 +179,15 @@
   }
 
   function persistProgress() {
-    updateSubj(function (cur) {
+    updateKey(storeKey, function (cur) {
       cur.inProgress = { order: order, idx: idx, score: score };
     });
+  }
+
+  // A saved run is only resumable while the question count is unchanged
+  // (question banks grow when books/categories are extended).
+  function resumable(p) {
+    return p && p.order && p.order.length === total && p.idx < p.order.length;
   }
 
   function startFresh() {
@@ -130,8 +199,8 @@
   }
 
   function resume() {
-    var p = subjState().inProgress;
-    if (!p || !p.order || !p.order.length) { startFresh(); return; }
+    var p = ownState().inProgress;
+    if (!resumable(p)) { startFresh(); return; }
     order = p.order;
     idx = Math.min(p.idx || 0, order.length - 1);
     score = p.score || 0;
@@ -173,12 +242,19 @@
     el("feedback").textContent = "";
   }
 
+  // Route mastery to the question's home store: its category in book mode,
+  // this subject otherwise. This is how book runs feed category progress.
   function markMastered(origIndex, correct) {
-    updateSubj(function (cur) {
+    var key = storeKey, qIdx = origIndex;
+    if (refs) {
+      var r = refs[origIndex];
+      key = r.cat; qIdx = r.idx;
+    }
+    updateKey(key, function (cur) {
       var m = cur.mastered || [];
-      var pos = m.indexOf(origIndex);
-      if (correct && pos < 0) m.push(origIndex);       // learned it
-      else if (!correct && pos >= 0) m.splice(pos, 1);  // slipped — resurface it
+      var pos = m.indexOf(qIdx);
+      if (correct && pos < 0) m.push(qIdx);            // learned it
+      else if (!correct && pos >= 0) m.splice(pos, 1); // slipped — resurface it
       cur.mastered = m;
     });
   }
@@ -235,9 +311,9 @@
     el("ring").style.setProperty("--pct", pct + "%");
     el("ring-num").textContent = pct + "%";
 
-    var prevBest = subjState().best || 0;
+    var prevBest = ownState().best || 0;
     var isBest = pct > prevBest;
-    updateSubj(function (cur) {
+    updateKey(storeKey, function (cur) {
       cur.best = Math.max(prevBest, pct);
       cur.inProgress = null;   // run complete — nothing to resume
     });
@@ -262,9 +338,9 @@
 
   // ---- intro wiring: offer Resume when a run is in progress ------------------
   (function setupIntro() {
-    var p = subjState().inProgress;
+    var p = ownState().inProgress;
     var startBtn = el("start-btn");
-    if (p && p.order && p.order.length && p.idx < p.order.length) {
+    if (resumable(p)) {
       // A saved run exists: make Start the secondary "restart", add a Resume primary.
       startBtn.textContent = "Restart ↻";
       startBtn.classList.remove("primary");
