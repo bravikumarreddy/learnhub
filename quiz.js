@@ -33,8 +33,6 @@
 
   // Subject hub links (extend when you add subjects)
   var hubLinks = {
-    cpp: "subject-cpp.html",
-    "cpp-senior": "subject-cpp.html",
     "cpp-types": "subject-cpp.html",
     "cpp-containers": "subject-cpp.html",
     "cpp-functions": "subject-cpp.html",
@@ -74,7 +72,7 @@
       hub = book.hub || "index.html";
     }
   } else {
-    subject = subject || "cpp";
+    subject = subject || "cpp-types";
     quiz = (window.QUIZZES || {})[subject];
     storeKey = subject;
     hub = hubLinks[subject] || "index.html";
