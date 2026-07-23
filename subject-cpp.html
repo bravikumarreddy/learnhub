@@ -5,6 +5,13 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>C++ — LearnHub</title>
   <link rel="stylesheet" href="styles.css" />
+  <style>
+    .card-stat {
+      margin-top: 12px; font-size: 12.5px; font-weight: 700; letter-spacing: 0.3px;
+      color: var(--accent-2); display: flex; gap: 14px; flex-wrap: wrap;
+    }
+    .card-stat .resume { color: var(--warn); }
+  </style>
 </head>
 <body>
   <header class="site-header">
@@ -128,5 +135,30 @@
   </main>
 
   <footer class="footer">Built for Ravi • LearnHub</footer>
+
+  <script>
+    // Annotate each quiz card with saved best score / resume state from localStorage.
+    (function () {
+      var store = {};
+      try { store = JSON.parse(localStorage.getItem("lh_progress_v1")) || {}; } catch (e) {}
+      var cards = document.querySelectorAll('a.card[href*="quiz.html?subject="]');
+      cards.forEach(function (card) {
+        var m = card.getAttribute("href").match(/subject=([^&]+)/);
+        if (!m) return;
+        var st = store[decodeURIComponent(m[1])];
+        if (!st) return;
+        var parts = [];
+        if (typeof st.best === "number") parts.push('<span>★ Best ' + st.best + '%</span>');
+        if (st.inProgress && st.inProgress.order) {
+          parts.push('<span class="resume">▸ Resume Q' + (st.inProgress.idx + 1) + '</span>');
+        }
+        if (!parts.length) return;
+        var div = document.createElement("div");
+        div.className = "card-stat";
+        div.innerHTML = parts.join("");
+        card.appendChild(div);
+      });
+    })();
+  </script>
 </body>
 </html>
