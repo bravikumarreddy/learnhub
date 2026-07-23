@@ -11,7 +11,18 @@
   var el = function (id) { return document.getElementById(id); };
 
   // Subject hub links (extend when you add subjects)
-  var hubLinks = { cpp: "subject-cpp.html", "cpp-senior": "subject-cpp.html" };
+  var hubLinks = {
+    cpp: "subject-cpp.html",
+    "cpp-senior": "subject-cpp.html",
+    "cpp-types": "subject-cpp.html",
+    "cpp-containers": "subject-cpp.html",
+    "cpp-functions": "subject-cpp.html",
+    "cpp-classes": "subject-cpp.html",
+    "cpp-memory": "subject-cpp.html",
+    "cpp-oop": "subject-cpp.html",
+    "cpp-templates": "subject-cpp.html",
+    "cpp-advanced": "subject-cpp.html"
+  };
   var hub = hubLinks[subject] || "index.html";
   el("back-link").href = hub;
   el("result-back").href = hub;
@@ -32,6 +43,17 @@
 
   var questions = quiz.questions;
   var idx = 0;
+
+  // Randomize order for each attempt (shuffle a copy, leave the bank intact).
+  function shuffle(arr) {
+    var a = arr.slice();
+    for (var i = a.length - 1; i > 0; i--) {
+      var j = Math.floor(Math.random() * (i + 1));
+      var tmp = a[i]; a[i] = a[j]; a[j] = tmp;
+    }
+    return a;
+  }
+
   var score = 0;
   var answered = false;
   var LETTERS = ["A", "B", "C", "D", "E", "F"];
@@ -44,6 +66,7 @@
 
   function start() {
     idx = 0; score = 0;
+    questions = shuffle(quiz.questions);
     show("quiz");
     render();
   }
