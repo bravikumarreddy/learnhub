@@ -33,5 +33,30 @@ window.BOOKS = [
       { id: "cpp-advanced",   icon: "🛡️", title: "Exceptions, Scope & I/O",
         blurb: "Exception safety & RAII, noexcept, namespaces / ADL, and iostream formatting pitfalls." }
     ]
+  },
+  {
+    id: "professional-cpp",
+    title: "Professional C++ (6th Edition)",
+    icon: "📗",
+    hub: "subject-cpp.html",
+    description: "Marc Gregoire — the professional level-up: modern C++20/23 idioms, smart-pointer mastery, templates & concepts, ranges, concurrency and exception safety. Interview-grade questions.",
+    categories: [
+      { id: "procpp-strings",     icon: "🧵", title: "Strings, string_view & Formatting",
+        blurb: "std::string internals, string_view lifetime traps, conversions, and std::format." },
+      { id: "procpp-memory",      icon: "🧠", title: "Smart Pointers & Memory Mastery",
+        blurb: "unique_ptr/shared_ptr internals, weak_ptr, aliasing, custom deleters and allocation traps." },
+      { id: "procpp-move",        icon: "🚚", title: "Move Semantics & Value Categories",
+        blurb: "Value categories, perfect forwarding, ref-qualifiers, RVO/NRVO and moved-from states." },
+      { id: "procpp-templates",   icon: "🧬", title: "Templates, Concepts & Metaprogramming",
+        blurb: "Deduction, specialization, variadics, C++20 concepts, CTAD and constexpr programming." },
+      { id: "procpp-stdlib",      icon: "📚", title: "Containers, Algorithms & Ranges",
+        blurb: "Container guarantees, heterogeneous lookup, erase-remove, C++20 ranges and views." },
+      { id: "procpp-errors",      icon: "🚨", title: "Error Handling & Exception Safety",
+        blurb: "Exception guarantees, noexcept semantics, stack unwinding, error codes and std::expected." },
+      { id: "procpp-concurrency", icon: "⚡", title: "Threads, Atomics & Coroutines",
+        blurb: "jthread, mutexes, condition variables, atomics & memory ordering, futures and coroutines." },
+      { id: "procpp-modern",      icon: "✨", title: "Modern Language Features",
+        blurb: "Lambdas in depth, spaceship operator, modules, designated initializers, chrono and vocabulary types." }
+    ]
   }
 ];

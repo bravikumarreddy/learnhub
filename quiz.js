@@ -40,7 +40,15 @@
     "cpp-memory": "subject-cpp.html",
     "cpp-oop": "subject-cpp.html",
     "cpp-templates": "subject-cpp.html",
-    "cpp-advanced": "subject-cpp.html"
+    "cpp-advanced": "subject-cpp.html",
+    "procpp-strings": "subject-cpp.html",
+    "procpp-memory": "subject-cpp.html",
+    "procpp-move": "subject-cpp.html",
+    "procpp-templates": "subject-cpp.html",
+    "procpp-stdlib": "subject-cpp.html",
+    "procpp-errors": "subject-cpp.html",
+    "procpp-concurrency": "subject-cpp.html",
+    "procpp-modern": "subject-cpp.html"
   };
 
   var quiz = null;      // { title, subtitle, crumb, questions }
