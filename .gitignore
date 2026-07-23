@@ -1,0 +1,6 @@
+
+# Never commit book files / large binaries
+*.pdf
+*.epub
+*.mobi
+*.azw3
