@@ -373,7 +373,7 @@ window.QUIZZES["procpp-memory"] = {
       "type": "code",
       "tag": "const unique_ptr",
       "question": "What happens when this is compiled and run?",
-      "code": "#include <iostream>\n\nvoid f() {}\nvoid g() noexcept {}\nint h() noexcept { return 1; }\n\nint main() {\n    std::cout << noexcept(f()) << noexcept(g())\n              << noexcept(f) << noexcept(h() + 1);\n}",
+      "code": "#include <memory>\n\nint main() {\n    const std::unique_ptr<int> p(new int(1));\n    *p = 5;                 // mutate the pointee\n    p.reset(new int(2));    // reseat the pointer\n}",
       "options": [
         "Fails to compile at *p = 5: a const unique_ptr propagates its constness to the pointee",
         "Fails to compile at p.reset(new int(2)): reset() is a non-const member function — const unique_ptr<int> behaves like int* const, so the pointer cannot be reseated even though the pointee stays mutable",
@@ -400,7 +400,7 @@ window.QUIZZES["procpp-memory"] = {
       "type": "code",
       "tag": "sink parameter",
       "question": "A unique_ptr is passed by value into a sink function. What is the exact output?",
-      "code": "struct NoEq {\n    int v;\n};\n\nstruct Wrapper {\n    NoEq n;\n    bool operator==(const Wrapper&) const = default;\n};\n\nint main() {\n    Wrapper a{{1}}, b{{1}};\n    return a == b;\n}",
+      "code": "#include <memory>\n#include <iostream>\n\nvoid consume(std::unique_ptr<int> p) {\n    std::cout << \"consumed\" << *p << ' ';\n}\n\nint main() {\n    auto p = std::make_unique<int>(9);\n    consume(std::move(p));\n    std::cout << (p ? \"alive\" : \"null\");\n}",
       "options": [
         "consumed9 null",
         "consumed9 alive — the caller's unique_ptr still points at the int until main returns",
@@ -550,7 +550,7 @@ window.QUIZZES["procpp-memory"] = {
       "type": "code",
       "tag": "owner equivalence",
       "question": "Two aliasing shared_ptrs point at different members of the same owned object. What does this print?",
-      "code": "#include <bitset>\n#include <iostream>\n\nint main() {\n    std::bitset<8> bits(\"10110000\");\n    bits.flip(0);\n    std::cout << bits.count() << ' ' << bits.test(7) << ' ' << bits.to_ulong();\n}",
+      "code": "#include <memory>\n#include <iostream>\n\nstruct Pair { int a = 1; int b = 2; };\n\nint main() {\n    auto p = std::make_shared<Pair>();\n    std::shared_ptr<int> pa(p, &p->a);\n    std::shared_ptr<int> pb(p, &p->b);\n    std::cout << (pa == pb)\n              << (pa.owner_before(pb) || pb.owner_before(pa));\n}",
       "options": [
         "11",
         "10",
@@ -577,7 +577,7 @@ window.QUIZZES["procpp-memory"] = {
       "type": "code",
       "tag": "weak use_count",
       "question": "A weak_ptr watches an int whose shared_ptr owners disappear one by one. What does this program print?",
-      "code": "#include <iostream>\n#include <string>\n\nstruct Employee {\n    std::string name;\n    int id = 7;\n};\n\nint main() {\n    Employee e(\"Jan\");\n    auto* p = new Employee(\"Ada\", 1);\n    std::cout << e.name << e.id << p->id;\n    delete p;\n}",
+      "code": "#include <memory>\n#include <iostream>\n\nint main() {\n    auto a = std::make_shared<int>(5);\n    auto b = a;\n    std::weak_ptr<int> w = a;\n    std::cout << w.use_count() << ' ';\n    b.reset();\n    std::cout << w.use_count() << ' ';\n    a.reset();\n    std::cout << w.use_count();\n}",
       "options": [
         "2 2 1",
         "3 2 1",
@@ -604,7 +604,7 @@ window.QUIZZES["procpp-memory"] = {
       "type": "code",
       "tag": "array value-init",
       "question": "An int array is created with make_unique and read immediately. What does this program print?",
-      "code": "#include <iostream>\n\nint main() {\n    int n = 1, total = 0;\n    switch (n) {\n        case 0: total += 1; [[fallthrough]];\n        case 1: total += 2; [[fallthrough]];\n        case 2: total += 4; break;\n        case 3: total += 8;\n    }\n    std::cout << total;\n}",
+      "code": "#include <memory>\n#include <iostream>\n\nint main() {\n    auto arr = std::make_unique<int[]>(3);\n    std::cout << arr[0] << arr[1] << arr[2];\n}",
       "options": [
         "000 — make_unique<T[]> VALUE-initializes every element, so the ints are zeroed",
         "Unspecified digits: the elements are default-initialized, like new int[3]",
@@ -631,7 +631,7 @@ window.QUIZZES["procpp-memory"] = {
       "type": "code",
       "tag": "allocate_shared",
       "question": "allocate_shared is given a printing allocator. What is the exact output?",
-      "code": "#include <chrono>\n#include <iostream>\n\nint main() {\n    using namespace std::chrono;\n    sys_days d = 2024y / March / 1;\n    weekday wd{d};\n    std::cout << wd.c_encoding()\n              << (d + days{3} == sys_days{2024y / March / 4});\n}",
+      "code": "#include <memory>\n#include <iostream>\n\ntemplate <class T>\nstruct PrintAlloc {\n    using value_type = T;\n    PrintAlloc() = default;\n    template <class U> PrintAlloc(const PrintAlloc<U>&) {}\n    T* allocate(std::size_t n) {\n        std::cout << \"alloc \";\n        return static_cast<T*>(::operator new(n * sizeof(T)));\n    }\n    void deallocate(T* p, std::size_t) {\n        std::cout << \"free \";\n        ::operator delete(p);\n    }\n};\n\nint main() {\n    {\n        auto sp = std::allocate_shared<int>(PrintAlloc<int>{}, 3);\n        std::cout << *sp << ' ';\n    }\n    std::cout << \"end\";\n}",
       "options": [
         "alloc alloc 3 free free end — the object and the control block are two separate allocations",
         "alloc 3 end — the block is freed through global operator delete, not the allocator",
@@ -671,7 +671,7 @@ window.QUIZZES["procpp-memory"] = {
       "type": "code",
       "tag": "deleter size",
       "question": "On mainstream implementations (libc++, libstdc++, MSVC), what does this program print?",
-      "code": "#include <iostream>\n#include <utility>\n\nint main() {\n    int i = -1;\n    unsigned int u = 1;\n    std::cout << (i < u) << std::cmp_less(i, u);\n}",
+      "code": "#include <memory>\n#include <iostream>\n\nint main() {\n    int extra = 0;\n    auto d1 = [](int* p) { delete p; };\n    auto d2 = [extra](int* p) { delete p; };\n    std::unique_ptr<int, decltype(d1)> a(new int(1), d1);\n    std::unique_ptr<int, decltype(d2)> b(new int(2), d2);\n    std::cout << (sizeof(a) == sizeof(int*))\n              << (sizeof(b) > sizeof(int*));\n}",
       "options": [
         "00",
         "10",
@@ -698,7 +698,7 @@ window.QUIZZES["procpp-memory"] = {
       "type": "code",
       "tag": "deleter identity",
       "question": "A shared_ptr with a class-type deleter is copied, and get_deleter is called on both. What is printed?",
-      "code": "#include <iostream>\n#include <numeric>\n#include <vector>\n\nconstexpr int sum_to(int n) {\n    std::vector<int> v(n);\n    std::iota(v.begin(), v.end(), 1);\n    int s = 0;\n    for (int x : v) s += x;\n    return s;\n}\n\nint main() {\n    constexpr int s = sum_to(10);\n    static_assert(s == 55);\n    std::cout << s;\n}",
+      "code": "#include <memory>\n#include <iostream>\n\nstruct D {\n    void operator()(int* p) const { delete p; }\n};\n\nint main() {\n    std::shared_ptr<int> a(new int(1), D{});\n    std::shared_ptr<int> b = a;\n    D* da = std::get_deleter<D>(a);\n    D* db = std::get_deleter<D>(b);\n    std::cout << (da == db) << (da != nullptr);\n}",
       "options": [
         "01 — each shared_ptr copy carries its own private copy of D",
         "11 — copying a shared_ptr copies nothing deleter-related; both copies see the single D instance stored in the shared control block",
@@ -752,7 +752,7 @@ window.QUIZZES["procpp-memory"] = {
       "type": "code",
       "tag": "raw allocation",
       "question": "Memory is obtained from ::operator new, an object is placement-constructed into it, then both are torn down manually. What is the exact output?",
-      "code": "#include <iostream>\n\ntemplate <typename T, typename U>\nstruct Pair {\n    T first;\n    U second;\n};\n\nint main() {\n    Pair p{42, 3.5};\n    std::cout << p.first + p.second;\n}",
+      "code": "#include <new>\n#include <iostream>\n\nstruct S {\n    S()  { std::cout << \"ctor \"; }\n    ~S() { std::cout << \"dtor \"; }\n};\n\nint main() {\n    void* mem = ::operator new(sizeof(S));\n    std::cout << \"raw \";\n    S* s = new (mem) S;\n    s->~S();\n    ::operator delete(mem);\n    std::cout << \"end\";\n}",
       "options": [
         "ctor raw dtor end",
         "raw ctor dtor end",
@@ -766,7 +766,7 @@ window.QUIZZES["procpp-memory"] = {
       "type": "code",
       "tag": "class operator new",
       "question": "A class provides its own operator new and operator delete. What is the exact output?",
-      "code": "#include <iostream>\n#include <numeric>\n\nint main() {\n    std::cout << std::midpoint(3, 8) << ' '\n              << std::midpoint(8, 3) << ' '\n              << std::midpoint(4'000'000'000u, 4'000'000'002u);\n}",
+      "code": "#include <iostream>\n#include <cstdlib>\n\nstruct S {\n    int v = 1;\n    static void* operator new(std::size_t n) {\n        std::cout << \"new \";\n        return std::malloc(n);\n    }\n    static void operator delete(void* p) {\n        std::cout << \"delete \";\n        std::free(p);\n    }\n};\n\nint main() {\n    S* s = new S;\n    std::cout << \"use\" << s->v << ' ';\n    delete s;\n    std::cout << \"end\";\n}",
       "options": [
         "use1 end — member operator new is ignored unless explicitly qualified as S::operator new",
         "new use1 end delete",
@@ -793,7 +793,7 @@ window.QUIZZES["procpp-memory"] = {
       "type": "code",
       "tag": "sized delete",
       "question": "This class declares only the SIZED operator delete. Assuming sizeof(double) == 8, what is the output?",
-      "code": "#include <cstdint>\n#include <iostream>\n#include <type_traits>\n\nenum class Flags : std::uint8_t { None = 0, All = 255 };\nenum class Plain { X };\n\nint main() {\n    std::cout << sizeof(Flags) << ' '\n              << std::is_same_v<std::underlying_type_t<Plain>, int> << ' '\n              << static_cast<int>(Flags::All);\n}",
+      "code": "#include <iostream>\n#include <cstddef>\n#include <cstdlib>\n\nstruct S {\n    double a, b;\n    static void* operator new(std::size_t n) { return std::malloc(n); }\n    static void operator delete(void* p, std::size_t sz) {\n        std::cout << \"sized \" << sz << ' ';\n        std::free(p);\n    }\n};\n\nint main() {\n    S* s = new S;\n    delete s;\n    std::cout << \"end\";\n}",
       "options": [
         "end — the sized overload is never selected when the unsized one is absent",
         "Fails to compile: a class must declare the unsized operator delete before the sized one",
@@ -820,7 +820,7 @@ window.QUIZZES["procpp-memory"] = {
       "type": "code",
       "tag": "polymorphic arrays",
       "question": "An array of Derived is deleted through a Base pointer. What is the behavior?",
-      "code": "#include <iostream>\n#include <string_view>\n\nint main() {\n    std::string_view s = \"config.local.json\";\n    std::cout << s.starts_with(\"config\") << s.ends_with(\".json\")\n              << s.starts_with('C');\n}",
+      "code": "#include <iostream>\n\nstruct B {\n    int x = 0;\n    virtual ~B() { std::cout << \"~B \"; }\n};\nstruct D : B {\n    int y = 0;\n    ~D() override { std::cout << \"~D \"; }\n};\n\nint main() {\n    B* p = new D[3];   // array of Derived through a Base pointer\n    delete[] p;        // undefined behavior\n}",
       "options": [
         "Prints \"~B ~B ~B \" — the base subobjects are destroyed correctly and the derived parts leak",
         "Prints \"~B ~B ~B \" with no leak, because the virtual destructor handles each element",
@@ -847,7 +847,7 @@ window.QUIZZES["procpp-memory"] = {
       "type": "code",
       "tag": "dangling get()",
       "question": "A raw pointer is taken from a unique_ptr with get(), then the unique_ptr is reset. What is the behavior?",
-      "code": "#include <iostream>\n\nint main() {\n    auto cmp = [](int a, int b) { return a < b; };\n    decltype(cmp) other;\n    decltype(cmp) third = cmp;\n    third = other;\n    std::cout << other(1, 2) << third(3, 2);\n}",
+      "code": "#include <memory>\n#include <iostream>\n\nint main() {\n    auto p = std::make_unique<int>(1);\n    int* raw = p.get();\n    p.reset(new int(2));\n    std::cout << *raw;\n}",
       "options": [
         "Prints 1 — raw is an independent copy of the value",
         "Prints 2 — raw is transparently updated to the new allocation",
@@ -901,7 +901,7 @@ window.QUIZZES["procpp-memory"] = {
       "type": "code",
       "tag": "aligned new",
       "question": "A 64-byte over-aligned type is allocated with new. What does this print under C++17 and later, and why?",
-      "code": "#include <chrono>\n#include <iostream>\n\nint main() {\n    using namespace std::chrono;\n    year_month_day d = 2024y / January / 31;\n    d += months{1};\n    std::cout << d.ok() << ' ' << static_cast<unsigned>(d.day());\n}",
+      "code": "#include <cstdint>\n#include <iostream>\n#include <new>\n\nstruct alignas(64) Big {\n    char data[64];\n};\n\nint main() {\n    Big* p = new Big;\n    std::cout << (reinterpret_cast<std::uintptr_t>(p) % 64 == 0);\n    delete p;\n}",
       "options": [
         "Prints 1: for a type whose alignment exceeds __STDCPP_DEFAULT_NEW_ALIGNMENT__, the new-expression automatically calls the aligned allocation overload operator new(size_t, align_val_t), so 64-byte alignment is guaranteed",
         "Prints 1 or 0 unpredictably; alignment beyond max_align_t is never guaranteed by new",
@@ -909,7 +909,7 @@ window.QUIZZES["procpp-memory"] = {
         "Undefined behavior: a pointer may not be converted to uintptr_t"
       ],
       "answer": 0,
-      "explain": "C++17 fixed a long-standing hole: plain operator new only guaranteed max_align_t alignment (typically 16), so new of an over-aligned type could silently return unsuitable storage — UB for SIMD or cache-line-aligned types. Now the compiler statically compares alignof(Big) with __STDCPP_DEFAULT_NEW_ALIGNMENT__ and routes over-aligned requests to the align_val_t overloads (with matching aligned operator delete). The uintptr_t check is implementation-portable and prints 1."
+      "explain": "C++17 fixed a long-standing hole: plain operator new only guaranteed max_align_t alignment (typically 16), so new of an over-aligned type could silently return unsuitable storage — UB for SIMD or cache-line-aligned types. Now the compiler statically compares alignof(Big) with __STDCPP_DEFAULT_NEW_ALIGNMENT__ and routes over-aligned requests to the align_val_t overloads (with matching aligned operator delete). The uintptr_t conversion is well-defined and the alignment check prints 1."
     },
     {
       "type": "mcq",
@@ -928,7 +928,7 @@ window.QUIZZES["procpp-memory"] = {
       "type": "code",
       "tag": "pmr propagation",
       "question": "A pmr::vector of pmr::string is given a monotonic_buffer_resource. What does this print?",
-      "code": "#include <filesystem>\n#include <iostream>\n\nint main() {\n    std::filesystem::path a = \"/home/user/.gitignore\";\n    std::filesystem::path b = \"archive.tar.gz\";\n    std::cout << a.stem() << ' ' << a.extension() << ' ' << b.stem();\n}",
+      "code": "#include <memory_resource>\n#include <string>\n#include <vector>\n#include <iostream>\n\nint main() {\n    std::pmr::monotonic_buffer_resource pool;\n    std::pmr::vector<std::pmr::string> v{&pool};\n    v.emplace_back(\"a string long enough to avoid SSO allocation\");\n    std::cout << (v.get_allocator().resource() == &pool)\n              << (v[0].get_allocator().resource() == &pool);\n}",
       "options": [
         "10 — the vector uses the pool but the strings fall back to the default resource",
         "00 — resources are not observable through get_allocator()",
@@ -981,7 +981,7 @@ window.QUIZZES["procpp-memory"] = {
       "type": "code",
       "tag": "move vs copy",
       "question": "A shared_ptr is first copied, then moved from. What does this print?",
-      "code": "#include <compare>\n\nstruct Price {\n    double amount;\n    std::strong_ordering operator<=>(const Price&) const = default;\n};\n\nint main() {\n    Price a{1.0}, b{2.0};\n    return (a <=> b) < 0;\n}",
+      "code": "#include <memory>\n#include <iostream>\n\nint main() {\n    auto a = std::make_shared<int>(1);\n    auto b = a;                    // copy: count -> 2\n    auto c = std::move(a);         // move: count unchanged\n    std::cout << c.use_count() << ' '\n              << (a ? \"set\" : \"empty\");\n}",
       "options": [
         "3 set",
         "2 set",

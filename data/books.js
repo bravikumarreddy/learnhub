@@ -58,5 +58,30 @@ window.BOOKS = [
       { id: "procpp-modern",      icon: "✨", title: "Modern Language Features",
         blurb: "Lambdas in depth, spaceship operator, modules, designated initializers, chrono and vocabulary types." }
     ]
+  },
+  {
+    id: "cpp-software-design",
+    title: "C++ Software Design (Iglberger)",
+    icon: "📘",
+    hub: "subject-cpp.html",
+    description: "Klaus Iglberger — design principles and patterns for high-quality modern C++: SOLID, value semantics, visitor/strategy/observer done right, CRTP, and type erasure. Architecture-level interview questions.",
+    categories: [
+      { id: "swd-principles",  icon: "🧭", title: "Design Principles & SOLID",
+        blurb: "SRP, OCP, LSP, ISP, DIP applied to real C++ — spotting violations and the cost of coupling." },
+      { id: "swd-abstractions", icon: "🏗️", title: "Abstractions & Interfaces",
+        blurb: "Semantic requirements of abstractions, LSP contracts, dependency graphs and architecture boundaries." },
+      { id: "swd-visitor",     icon: "🎯", title: "Visitor & std::variant",
+        blurb: "Type extension vs operation extension, classic visitor, std::variant + overload, acyclic visitor." },
+      { id: "swd-strategy",    icon: "🔌", title: "Strategy, Command & std::function",
+        blurb: "Behavior injection, strategy vs command, std::function-based design and its costs." },
+      { id: "swd-structural",  icon: "🌉", title: "Adapter, Observer, Bridge & Prototype",
+        blurb: "Interface adaptation, push/pull observers, pimpl as bridge, clone and prototype semantics." },
+      { id: "swd-typeerasure", icon: "🎭", title: "External Polymorphism & Type Erasure",
+        blurb: "Manual vtables, owning vs non-owning erasure, SBO, and the type-erasure pattern end to end." },
+      { id: "swd-static",      icon: "⚙️", title: "CRTP, Concepts & Static Polymorphism",
+        blurb: "CRTP interfaces and mixins, C++20 concepts as the modern replacement, compile-time vs runtime dispatch." },
+      { id: "swd-value",       icon: "💎", title: "Value Semantics, Decorator & Singleton",
+        blurb: "Value-based design, decorator at runtime and compile time, and why singletons hurt testability." }
+    ]
   }
 ];
