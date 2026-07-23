@@ -77,13 +77,16 @@
         questions: qs
       };
       storeKey = "book:" + book.id;
-      hub = book.hub || "index.html";
+      hub = "book.html?id=" + book.id;
     }
   } else {
     subject = subject || "cpp-types";
     quiz = (window.QUIZZES || {})[subject];
     storeKey = subject;
-    hub = hubLinks[subject] || "index.html";
+    var owner = (window.BOOKS || []).filter(function (b) {
+      return b.categories.some(function (c) { return c.id === subject; });
+    })[0];
+    hub = owner ? "book.html?id=" + owner.id : (hubLinks[subject] || "index.html");
   }
 
   el("back-link").href = hub;

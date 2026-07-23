@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Book — LearnHub</title>
+  <link rel="stylesheet" href="styles.css" />
+  <style>
+    .card-stat {
+      margin-top: 12px; font-size: 12.5px; font-weight: 700; letter-spacing: 0.3px;
+      color: var(--accent-2); display: flex; gap: 14px; flex-wrap: wrap;
+    }
+    .card-stat .resume { color: var(--warn); }
+    .book-progress { font-size: 14px; font-weight: 700; color: var(--accent-2); }
+  </style>
+</head>
+<body>
+  <header class="site-header">
+    <a class="brand" href="index.html">
+      <span class="logo">L</span> LearnHub
+    </a>
+    <nav class="crumbs"><a href="index.html">Home</a><span>/</span><a href="subject-cpp.html">C++</a><span>/</span><span id="crumb-book">Book</span></nav>
+  </header>
+
+  <main class="container">
+    <section class="hero">
+      <h1 id="book-title">Book</h1>
+      <p id="book-desc"></p>
+      <p class="book-progress" id="book-progress"></p>
+    </section>
+
+    <h2 class="section-title">Quizzes</h2>
+    <div class="grid" id="book-grid"></div>
+
+    <div class="actions" style="margin-top:28px;">
+      <a class="btn ghost" href="subject-cpp.html">← All books</a>
+    </div>
+  </main>
+
+  <footer class="footer">Built for Ravi • LearnHub</footer>
+
+  <script src="data/cpp-types.js"></script>
+  <script src="data/cpp-containers.js"></script>
+  <script src="data/cpp-functions.js"></script>
+  <script src="data/cpp-classes.js"></script>
+  <script src="data/cpp-memory.js"></script>
+  <script src="data/cpp-oop.js"></script>
+  <script src="data/cpp-templates.js"></script>
+  <script src="data/cpp-advanced.js"></script>
+  <script src="data/procpp-strings.js"></script>
+  <script src="data/procpp-memory.js"></script>
+  <script src="data/procpp-move.js"></script>
+  <script src="data/procpp-templates.js"></script>
+  <script src="data/procpp-stdlib.js"></script>
+  <script src="data/procpp-errors.js"></script>
+  <script src="data/procpp-concurrency.js"></script>
+  <script src="data/procpp-modern.js"></script>
+  <script src="data/books.js"></script>
+
+  <script>
+    (function () {
+      var store = {};
+      try { store = JSON.parse(localStorage.getItem("lh_progress_v1")) || {}; } catch (e) {}
+
+      var id = new URLSearchParams(window.location.search).get("id");
+      var book = (window.BOOKS || []).filter(function (b) { return b.id === id; })[0];
+      if (!book) {
+        document.getElementById("book-title").textContent = "Book not found";
+        document.getElementById("book-desc").textContent =
+          'No book "' + (id || "") + '" is registered in data/books.js.';
+        return;
+      }
+
+      function bankSize(cid) {
+        var b = (window.QUIZZES || {})[cid];
+        return b ? b.questions.length : 0;
+      }
+      function masteredCount(cid) {
+        var st = store[cid];
+        return st && st.mastered ? st.mastered.length : 0;
+      }
+      function esc(s) {
+        return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+      }
+
+      var totalQ = 0, totalM = 0;
+      book.categories.forEach(function (c) { totalQ += bankSize(c.id); totalM += masteredCount(c.id); });
+
+      document.title = book.title + " — LearnHub";
+      document.getElementById("crumb-book").textContent = book.title;
+      document.getElementById("book-title").innerHTML = book.icon + ' <span class="grad">' + esc(book.title) + "</span>";
+      document.getElementById("book-desc").textContent = book.description;
+      document.getElementById("book-progress").textContent = "✓ " + totalM + " / " + totalQ + " mastered";
+
+      var cards =
+        '<a class="card random" href="quiz.html?book=' + book.id + '">' +
+        '<span class="badge ready">All chapters</span>' +
+        '<div class="icon">🎲</div>' +
+        "<h3>Random — whole book</h3>" +
+        "<p>All " + totalQ + " questions from every category in one shuffled run. " +
+        "Correct answers count toward each category’s progress.</p></a>";
+
+      book.categories.forEach(function (c) {
+        cards +=
+          '<a class="card" href="quiz.html?subject=' + c.id + '">' +
+          '<span class="badge ready">' + bankSize(c.id) + " Qs</span>" +
+          '<div class="icon">' + c.icon + "</div>" +
+          "<h3>" + esc(c.title) + "</h3>" +
+          "<p>" + esc(c.blurb) + "</p></a>";
+      });
+      document.getElementById("book-grid").innerHTML = cards;
+
+      // Annotate cards with saved progress.
+      var links = document.querySelectorAll('a.card[href^="quiz.html?"]');
+      links.forEach(function (card) {
+        var href = card.getAttribute("href");
+        var m = href.match(/subject=([^&]+)/);
+        var bm = href.match(/book=([^&]+)/);
+        var key = m ? decodeURIComponent(m[1]) : bm ? "book:" + decodeURIComponent(bm[1]) : null;
+        if (!key) return;
+        var st = store[key];
+        var parts = [];
+        if (m) {
+          var size = bankSize(key), done = masteredCount(key);
+          if (size && done) parts.push("<span>✓ " + done + "/" + size + " mastered</span>");
+        }
+        if (st && typeof st.best === "number") parts.push("<span>★ Best " + st.best + "%</span>");
+        if (st && st.inProgress && st.inProgress.order) {
+          parts.push('<span class="resume">▸ Resume Q' + (st.inProgress.idx + 1) + "</span>");
+        }
+        if (!parts.length) return;
+        var div = document.createElement("div");
+        div.className = "card-stat";
+        div.innerHTML = parts.join("");
+        card.appendChild(div);
+      });
+    })();
+  </script>
+</body>
+</html>

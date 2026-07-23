@@ -30,11 +30,12 @@
   <main class="container">
     <section class="hero">
       <h1>💻 <span class="grad">C++</span></h1>
-      <p>Quizzes are organized by book — pick a category, or hit Random to draw from the whole book. More books are on the way.</p>
+      <p>Pick a book — each opens into its categories and a whole-book Random mode, with progress tracked per book.</p>
     </section>
 
-    <!-- Book sections are rendered here from data/books.js -->
-    <div id="book-sections"></div>
+    <h2 class="section-title">Books</h2>
+    <!-- Book cards are rendered here from data/books.js -->
+    <div class="grid" id="book-sections"></div>
 
     <h2 class="section-title">More — coming soon</h2>
     <div class="grid">
@@ -96,69 +97,32 @@
         return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
       }
 
-      // ---- render one section per book --------------------------------------
+      // ---- render one card per book (click → book.html with subcategories) --
       var host = document.getElementById("book-sections");
+      var html = "";
       (window.BOOKS || []).forEach(function (book) {
         var totalQ = 0, totalM = 0;
         book.categories.forEach(function (c) {
           totalQ += bankSize(c.id);
           totalM += masteredCount(c.id);
         });
-
-        var section = document.createElement("div");
-        var cards = "";
-
-        // Random card — the whole book, shuffled.
-        cards +=
-          '<a class="card random" href="quiz.html?book=' + book.id + '">' +
-          '<span class="badge ready">All chapters</span>' +
-          '<div class="icon">🎲</div>' +
-          "<h3>Random — whole book</h3>" +
-          "<p>All " + totalQ + " questions from every category in one shuffled run. " +
-          "Correct answers count toward each category’s progress.</p></a>";
-
-        book.categories.forEach(function (c) {
-          cards +=
-            '<a class="card" href="quiz.html?subject=' + c.id + '">' +
-            '<span class="badge ready">Ready</span>' +
-            '<div class="icon">' + c.icon + "</div>" +
-            "<h3>" + esc(c.title) + "</h3>" +
-            "<p>" + esc(c.blurb) + "</p></a>";
-        });
-
-        section.innerHTML =
-          '<div class="book-head"><h2 class="section-title">' + book.icon + " " +
-          esc(book.title) + " — " + totalQ + " questions</h2>" +
-          '<span class="book-progress">✓ ' + totalM + " / " + totalQ + " mastered</span></div>" +
-          '<p class="book-desc">' + esc(book.description) + "</p>" +
-          '<div class="grid">' + cards + "</div>";
-        host.appendChild(section);
-      });
-
-      // ---- annotate every quiz card with saved progress ---------------------
-      var cards = document.querySelectorAll('a.card[href^="quiz.html?"]');
-      cards.forEach(function (card) {
-        var href = card.getAttribute("href");
-        var m = href.match(/subject=([^&]+)/);
-        var bm = href.match(/book=([^&]+)/);
-        var key = m ? decodeURIComponent(m[1]) : bm ? "book:" + decodeURIComponent(bm[1]) : null;
-        if (!key) return;
-        var st = store[key];
-        var parts = [];
-        if (m) {
-          var size = bankSize(key), done = masteredCount(key);
-          if (size && done) parts.push("<span>✓ " + done + "/" + size + " mastered</span>");
+        var stats = ['<span>✓ ' + totalM + "/" + totalQ + " mastered</span>"];
+        var bookSt = store["book:" + book.id];
+        if (bookSt && typeof bookSt.best === "number") {
+          stats.push("<span>★ Best " + bookSt.best + "%</span>");
         }
-        if (st && typeof st.best === "number") parts.push("<span>★ Best " + st.best + "%</span>");
-        if (st && st.inProgress && st.inProgress.order) {
-          parts.push('<span class="resume">▸ Resume Q' + (st.inProgress.idx + 1) + "</span>");
+        if (bookSt && bookSt.inProgress && bookSt.inProgress.order) {
+          stats.push('<span class="resume">▸ Random run at Q' + (bookSt.inProgress.idx + 1) + "</span>");
         }
-        if (!parts.length) return;
-        var div = document.createElement("div");
-        div.className = "card-stat";
-        div.innerHTML = parts.join("");
-        card.appendChild(div);
+        html +=
+          '<a class="card" href="book.html?id=' + book.id + '">' +
+          '<span class="badge ready">' + book.categories.length + " categories · " + totalQ + " Qs</span>" +
+          '<div class="icon">' + book.icon + "</div>" +
+          "<h3>" + esc(book.title) + "</h3>" +
+          "<p>" + esc(book.description) + "</p>" +
+          '<div class="card-stat">' + stats.join("") + "</div></a>";
       });
+      host.innerHTML = html;
     })();
   </script>
 </body>
