@@ -83,5 +83,30 @@ window.BOOKS = [
       { id: "swd-value",       icon: "💎", title: "Value Semantics, Decorator & Singleton",
         blurb: "Value-based design, decorator at runtime and compile time, and why singletons hurt testability." }
     ]
+  },
+  {
+    id: "templates-complete-guide",
+    title: "C++ Templates: The Complete Guide",
+    icon: "📐",
+    hub: "subject-cpp.html",
+    description: "Vandevoorde, Josuttis & Gregor — the definitive deep dive on templates: deduction, specialization, two-phase lookup, SFINAE and template-based design. Expert-level questions on every corner of the template system.",
+    categories: [
+      { id: "templ-basics",    icon: "🧱", title: "Function & Class Templates",
+        blurb: "Function/class template basics, lazy instantiation, member templates, the inclusion model and default template arguments." },
+      { id: "templ-nontype",   icon: "🔢", title: "Nontype & Variadic Templates",
+        blurb: "Nontype parameter restrictions, auto nontype params, parameter packs, pack expansion and C++17 fold expressions." },
+      { id: "templ-tricky",    icon: "🪤", title: "Tricky Basics & Dependent Names",
+        blurb: "typename & .template disambiguation, this-> in dependent bases, zero init, and raw arrays / string literals as arguments." },
+      { id: "templ-deduction", icon: "🎯", title: "Argument Deduction & CTAD",
+        blurb: "Deduced vs non-deduced contexts, decay, reference collapsing, forwarding references, braced-init traps and C++17 CTAD." },
+      { id: "templ-overload",  icon: "⚖️", title: "Overloading & Specialization",
+        blurb: "Function-template overloading & partial ordering, class-template full/partial specialization, and specialization pitfalls." },
+      { id: "templ-names",     icon: "🔎", title: "Names, Lookup & Instantiation",
+        blurb: "Two-phase lookup, dependent names & ADL, injected-class-name, points of instantiation and extern/explicit instantiation." },
+      { id: "templ-traits",    icon: "🧪", title: "Type Traits, SFINAE & enable_if",
+        blurb: "The type_traits library, writing traits, SFINAE & the immediate-context rule, enable_if, void_t detection and if constexpr." },
+      { id: "templ-design",    icon: "📐", title: "Templates & Design",
+        blurb: "Static vs dynamic polymorphism, CRTP & mixins, type erasure, expression templates, policy classes and metaprogramming." }
+    ]
   }
 ];
